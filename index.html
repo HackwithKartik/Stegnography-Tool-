@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steganography Tool</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: monospace;
+    background: black;
+    color: #00ff00;
+    text-align: center;
+}
+
+h1 {
+    padding: 20px;
+}
+
+/* GRID RESPONSIVE */
+.container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 10px;
+}
+
+@media(min-width: 768px){
+    .container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.section {
+    border: 1px solid #00ff00;
+    padding: 20px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.7);
+}
+
+input, textarea {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+button {
+    padding: 10px 20px;
+    background: #00ff00;
+    border: none;
+    cursor: pointer;
+}
+
+canvas {
+    display: none;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>💀 Steganography Toolkit</h1>
+
+<div class="container">
+
+<!-- TEXT -->
+<div class="section">
+<h2>📝 Text Tool</h2>
+<textarea id="textInput" placeholder="Enter text"></textarea><br>
+<button onclick="encodeText()">Encode</button>
+<button onclick="decodeText()">Decode</button>
+<p id="textOutput"></p>
+</div>
+
+<!-- IMAGE -->
+<div class="section">
+<h2>🖼️ Image Tool</h2>
+<input type="file" id="imgInput"><br>
+<textarea id="imgMsg" placeholder="Secret message"></textarea><br>
+<button onclick="encodeImage()">Hide</button>
+<button onclick="decodeImage()">Extract</button>
+<p id="imgOutput"></p>
+<a id="downloadLink"></a>
+<canvas id="canvas"></canvas>
+</div>
+
+<!-- AUDIO -->
+<div class="section">
+<h2>🎧 Audio Tool</h2>
+<input type="file"><br>
+<textarea placeholder="Secret message"></textarea><br>
+<button onclick="audioDemo()">Hide</button>
+<p id="audioOutput"></p>
+</div>
+
+</div>
+
+<script>
+
+// TEXT
+function encodeText(){
+    let t = document.getElementById("textInput").value;
+    document.getElementById("textOutput").innerText = btoa(t);
+}
+function decodeText(){
+    let t = document.getElementById("textInput").value;
+    document.getElementById("textOutput").innerText = atob(t);
+}
+
+// IMAGE
+function encodeImage(){
+    let file = document.getElementById("imgInput").files[0];
+    let msg = document.getElementById("imgMsg").value + "###";
+
+    let reader = new FileReader();
+    reader.onload = function(e){
+        let img = new Image();
+        img.onload = function(){
+            let canvas = document.getElementById("canvas");
+            let ctx = canvas.getContext("2d");
+
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img,0,0);
+
+            let data = ctx.getImageData(0,0,canvas.width,canvas.height);
+            let pixels = data.data;
+
+            let binary="";
+            for(let i=0;i<msg.length;i++){
+                binary+=msg.charCodeAt(i).toString(2).padStart(8,'0');
+            }
+
+            for(let i=0;i<binary.length;i++){
+                pixels[i]=(pixels[i]&254)|parseInt(binary[i]);
+            }
+
+            ctx.putImageData(data,0,0);
+
+            let link=document.getElementById("downloadLink");
+            link.href=canvas.toDataURL();
+            link.download="encoded.png";
+            link.innerText="⬇️ Download Image";
+
+            document.getElementById("imgOutput").innerText="✅ Hidden!";
+        }
+        img.src=e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+function decodeImage(){
+    let file=document.getElementById("imgInput").files[0];
+
+    let reader=new FileReader();
+    reader.onload=function(e){
+        let img=new Image();
+        img.onload=function(){
+            let canvas=document.getElementById("canvas");
+            let ctx=canvas.getContext("2d");
+
+            canvas.width=img.width;
+            canvas.height=img.height;
+            ctx.drawImage(img,0,0);
+
+            let data=ctx.getImageData(0,0,canvas.width,canvas.height);
+            let pixels=data.data;
+
+            let binary="";
+            for(let i=0;i<pixels.length;i++){
+                binary+=(pixels[i]&1);
+            }
+
+            let message="";
+            for(let i=0;i<binary.length;i+=8){
+                let char=String.fromCharCode(parseInt(binary.substr(i,8),2));
+                message+=char;
+                if(message.includes("###")) break;
+            }
+
+            document.getElementById("imgOutput").innerText=
+                "🔓 "+message.replace("###","");
+        }
+        img.src=e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+// AUDIO DEMO
+function audioDemo(){
+    document.getElementById("audioOutput").innerText =
+        "⚠️ Audio steganography needs backend (Python)";
+}
+
+</script>
+
+</body>
+</html>_
